@@ -91,7 +91,8 @@ class CriticalCSSSubscriber implements Subscriber_Interface {
 			'switch_theme'                      => 'maybe_regenerate_cpcss',
 			'rocket_excluded_inline_js_content' => 'exclude_inline_js',
 			'before_delete_post'                => 'delete_cpcss',
-			'rocket_disable_preload_fonts'      => 'maybe_disable_preload_fonts',
+			'admin_post_rocket_rollback' => [ 'stop_critical_css_generation', 9 ],
+			'wp_rocket_upgrade' => [ 'stop_critical_css_generation', 9 ],
 		];
 		// phpcs:enable WordPress.Arrays.MultipleStatementAlignment.DoubleArrowNotAligned
 	}
@@ -301,10 +302,7 @@ class CriticalCSSSubscriber implements Subscriber_Interface {
 			&&
 			0 === (int) $value['async_css']
 		) {
-			$this->critical_css->stop_generation();
-
-			delete_transient( 'rocket_critical_css_generation_process_running' );
-			delete_transient( 'rocket_critical_css_generation_process_complete' );
+			$this->stop_critical_css_generation();
 		}
 	}
 
@@ -660,6 +658,10 @@ JS;
 				continue;
 			}
 
+			if ( false !== strpos( $tags_match[0][ $i ], 'media="print"' ) ) {
+				continue;
+			}
+
 			$preload = str_replace( 'stylesheet', 'preload', $tags_match[1][ $i ] );
 			$onload  = preg_replace( '~' . preg_quote( $tags_match[3][ $i ], '~' ) . '~iU', ' data-rocket-async="style" as="style" onload=""' . $tags_match[3][ $i ] . '>', $tags_match[3][ $i ] );
 			$tag     = str_replace( $tags_match[3][ $i ] . '>', $onload, $tag );
@@ -687,25 +689,6 @@ JS;
 		}
 
 		$this->critical_css->process_handler();
-	}
-
-	/**
-	 * Maybe disable adding the preload fonts links
-	 *
-	 * @since 3.8.8
-	 *
-	 * @return bool
-	 */
-	public function maybe_disable_preload_fonts() : bool {
-		if ( ! $this->should_async_css() ) {
-			return false;
-		}
-
-		return (
-			! empty( $this->options->get( 'critical_css', '' ) )
-			||
-			! empty( $this->critical_css->get_current_page_critical_css() )
-		);
 	}
 
 	/**
@@ -744,5 +727,19 @@ JS;
 		}
 
 		return ! is_rocket_post_excluded_option( 'async_css' );
+	}
+
+	/**
+	 * Stops the critical CSS generation.
+	 *
+	 * @since 3.10
+	 *
+	 * @return void
+	 */
+	public function stop_critical_css_generation() {
+
+		$this->critical_css->stop_generation();
+		delete_transient( 'rocket_critical_css_generation_process_running' );
+		delete_transient( 'rocket_critical_css_generation_process_complete' );
 	}
 }
