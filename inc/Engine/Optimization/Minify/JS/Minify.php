@@ -210,7 +210,7 @@ class Minify extends AbstractJSOptimization implements ProcessorInterface {
 		}
 
 		$is_external_url = $this->is_external_file( $url );
-		$file_path       = $is_external_url ? $this->local_cache->get_filepath( $url ) : $this->get_file_path( $url );
+		$file_path       = $is_external_url ? $this->local_cache->get_filepath( rocket_add_url_protocol( $url ) ) : $this->get_file_path( $url );
 
 		if ( ! $file_path ) {
 			Logger::error(
@@ -332,10 +332,10 @@ class Minify extends AbstractJSOptimization implements ProcessorInterface {
 		$minified_content = $minifier->minify();
 
 		if ( empty( $minified_content ) ) {
-			return '';
+			return ''; // phpcs:ignore Universal.CodeAnalysis.ConstructorDestructorReturn.ReturnValueFound
 		}
 
-		return $minified_content;
+		return $minified_content; // phpcs:ignore Universal.CodeAnalysis.ConstructorDestructorReturn.ReturnValueFound
 	}
 
 	/**

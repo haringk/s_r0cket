@@ -104,7 +104,7 @@ class Admin {
 		);
 
 		// Increment this item's threshold count.
-		$cpcss_pending[ $cpcss_item['path'] ]['check']++;
+		++$cpcss_pending[ $cpcss_item['path'] ]['check'];
 
 		$this->cpcss_heartbeat_notices( $cpcss_generation, $cpcss_item );
 
@@ -228,6 +228,10 @@ class Admin {
 	 * @return void
 	 */
 	public function add_regenerate_menu_item( $wp_admin_bar ) {
+		if ( 'local' === wp_get_environment_type() ) {
+			return;
+		}
+
 		if ( ! current_user_can( 'rocket_regenerate_critical_css' ) ) {
 			return;
 		}

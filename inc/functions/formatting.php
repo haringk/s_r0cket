@@ -127,10 +127,10 @@ function rocket_validate_css( $file ) {
  * @return bool
  */
 function rocket_is_internal_file( $file ) {
-	$file_host = wp_parse_url( $file, PHP_URL_HOST );
+	$file_host = wp_parse_url( rocket_add_url_protocol( $file ), PHP_URL_HOST );
 
 	if ( empty( $file_host ) ) {
-		return true;
+		return false;
 	}
 
 	/**
@@ -187,6 +187,7 @@ function rocket_sanitize_textarea_field( $field, $value ) {
 		'exclude_lazyload'           => [ 'sanitize_text_field' ],
 		'delay_js_exclusions'        => [ 'sanitize_text_field', 'rocket_clean_wildcards' ],
 		'remove_unused_css_safelist' => [ 'sanitize_text_field', 'rocket_clean_wildcards' ],
+		'preload_excluded_uri'       => [ 'sanitize_text_field', 'rocket_clean_wildcards' ],
 	];
 
 	if ( ! isset( $fields[ $field ] ) ) {
@@ -228,6 +229,7 @@ function rocket_sanitize_xml( $file ) {
 	$ext  = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
 	return ( 'xml' === $ext ) ? trim( $file ) : false;
 }
+
 
 /**
  * Sanitizes a string key like the sanitize_key() WordPress function without forcing lowercase.
@@ -469,10 +471,17 @@ function rocket_realpath( $file ) {
  * @return string|bool
  */
 function rocket_url_to_path( $url, array $zones = [ 'all' ] ) {
-	$wp_content_dir = rocket_get_constant( 'WP_CONTENT_DIR' );
-	$root_dir       = trailingslashit( dirname( $wp_content_dir ) );
-	$root_url       = str_replace( wp_basename( $wp_content_dir ), '', content_url() );
-	$url_host       = wp_parse_url( $url, PHP_URL_HOST );
+	$wp_content_dir   = rocket_get_constant( 'WP_CONTENT_DIR' );
+	$root_dir         = trailingslashit( dirname( $wp_content_dir ) );
+	$content_url_host = wp_parse_url( content_url(), PHP_URL_HOST );
+
+	if ( null !== $content_url_host ) {
+		$root_url = str_replace( wp_basename( $wp_content_dir ), '', content_url() );
+	} else {
+		$root_url = site_url( '/' );
+	}
+
+	$url_host = wp_parse_url( $url, PHP_URL_HOST );
 
 	// relative path.
 	if ( null === $url_host ) {

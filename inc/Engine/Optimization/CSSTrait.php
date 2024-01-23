@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace WP_Rocket\Engine\Optimization;
 
@@ -377,14 +378,16 @@ trait CSSTrait {
 			'/(?:@font-face)\s*{(?<value>[^}]+)}/i',
 			function ( $matches ) {
 				if ( preg_match( '/font-display:\s*(?<swap_value>\w*);?/i', $matches['value'], $attribute ) ) {
-					return 'swap' === strtolower( $attribute['swap_value'] )
-						? $matches[0]
-						: str_replace( $attribute['swap_value'], 'swap', $matches[0] );
-				} else {
-					$swap = "font-display:swap;{$matches['value']}";
+					if ( 'swap' === strtolower( $attribute['swap_value'] ) ) {
+						return $matches[0];
+					}
+
+					$swap = str_replace( $attribute['swap_value'], 'swap', $attribute[0] );
+
+					return preg_replace( '/font-display:\s*(?<swap_value>\w*);?/i', $swap, $matches[0] );
 				}
 
-				return str_replace( $matches['value'], $swap, $matches[0] );
+				return str_replace( $matches['value'], "font-display:swap;{$matches['value']}", $matches[0] );
 			},
 			$css_file_content
 		);
@@ -547,7 +550,7 @@ trait CSSTrait {
 	 *
 	 * @return bool
 	 */
-	private function check_cached_import( string $path ) : bool {
+	private function check_cached_import( string $path ): bool {
 		return isset( $this->imports[ md5( rocket_realpath( $path ) ) ] );
 	}
 
@@ -559,7 +562,7 @@ trait CSSTrait {
 	 *
 	 * @return string
 	 */
-	public function handle_charsets( string $content, bool $keep_first_charset = true ) : string {
+	public function handle_charsets( string $content, bool $keep_first_charset = true ): string {
 		$new_content = preg_replace_callback( '/@charset\s+["|\'](.*?)["|\'];?/i', [ $this, 'match_charsets' ], $content );
 
 		if ( ! $keep_first_charset ) {
@@ -580,12 +583,11 @@ trait CSSTrait {
 	 *
 	 * @return string
 	 */
-	private function match_charsets( array $match ) : string {
+	private function match_charsets( array $match ): string { // phpcs:ignore Universal.NamingConventions.NoReservedKeywordParameterNames.matchFound
 		if ( is_null( $this->found_charset ) ) {
 			$this->found_charset = $match[1];
 		}
 
 		return '';
 	}
-
 }
